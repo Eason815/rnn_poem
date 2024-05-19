@@ -1,5 +1,4 @@
 import numpy as np
-import argparse
 import collections
 import torch
 from torch.autograd import Variable
@@ -12,20 +11,32 @@ start_token = 'G'
 end_token = 'E'
 batch_size = 64
 
+# 选择模式：1.训练模式 2.生成模式
+mode=2
+
 # 注意！模型要与源文本一同对应导入
+# 请选择模型(1或2)：
+choices=2
 
-# 请选择模型：
 
-# 自训练模型1
-# putmodel=savemodel='./model/rnn_model1'
-# dest='./setdata/tang.txt'
-# epochs = 11
-
-# 自训练模型2
-putmodel=savemodel='./model/rnn_model2'
-dest='./setdata/song.txt'
-epochs = 41
-
+def getargs(choices):
+    # 自训练模型1
+    if choices == 1:
+        putmodel=savemodel='./model/rnn_model1'
+        dest='./setdata/tang.txt'
+        epochs = 11
+        return putmodel,savemodel,dest,epochs
+    # 自训练模型2    
+    elif choices == 2:
+        putmodel=savemodel='./model/rnn_model2'
+        dest='./setdata/song.txt'
+        epochs = 41
+        return putmodel,savemodel,dest,epochs
+    # 自训练模型...
+    
+    else:
+        print("输入错误")
+        exit(0)
 
 def process_poems():
     # 数据预处理
@@ -245,8 +256,9 @@ def gen_poem(begin_word):
     
 
 if __name__ == '__main__':
-    #print("选择模式：1.训练模式 2.生成模式\n你的选择(输入1或2):")
-    mode = 2
+
+    putmodel,savemodel,dest,epochs=getargs(choices)
+
     if mode == 1:
         print("start to train model")
         run_training()
@@ -259,9 +271,9 @@ if __name__ == '__main__':
                 break
             word1 = OpenCC('s2t').convert(word1)
             try:
-                if putmodel == './model/rnn_model1':
+                if choices == 1:
                     pretty_print_poem1(gen_poem(word1))
-                elif putmodel == './model/rnn_model2':
+                elif choices == 2:
                     pretty_print_poem2(gen_poem(word1))
             except KeyError as e:
                 print("生成失败，换个字试试吧！") 
