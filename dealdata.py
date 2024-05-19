@@ -5,13 +5,13 @@ import os
 
 # 通过dealdata.py处理后数据集(setdata) 
 
-def dest():
-    return './setdata/tang.txt'
+# 自训练模型1
+def data_deal1():
 
-def data_deal():
+    dest1 = './setdata/tang.txt'
 
     # 清空文件
-    with open(dest() , 'w') as f:
+    with open(dest1 , 'w') as f:
         f.write('')
 
     for i in range(20):
@@ -24,7 +24,7 @@ def data_deal():
             data = json.load(f)
 
         # 打开test.txt文件，准备写入    w重写，a追加
-        with open(dest(), 'a', encoding='utf-8') as f:
+        with open(dest1, 'a', encoding='utf-8') as f:
             for item in data:
                 # 获取"title"和"paragraphs"的值
                 title = item.get('title', '')
@@ -38,5 +38,9 @@ def data_deal():
         print('第'+str(i)+'次写入完成')
 
 if __name__ == '__main__':
-    data_deal()
+
+# 自训练模型1
+    data_deal1()
     print('数据处理完成')
+
+# 自训练模型2

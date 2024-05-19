@@ -4,23 +4,25 @@ import torch
 from torch.autograd import Variable
 import torch.optim as optim
 from opencc import OpenCC
-from sklearn.model_selection import train_test_split
 import rnn_lstm
-from dealdata import dest
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 start_token = 'G'
 end_token = 'E'
 batch_size = 64
 
-# dest='./setdata/tang.txt'
-putmodel=savemodel='./model/rnn_model'
+# 注意！模型要与源文本一同对应导入
+
+# 自训练模型1
+putmodel=savemodel='./model/rnn_model1'
+dest='./setdata/tang.txt'
+
 
 
 def process_poems():
     # 数据预处理
     poems = []
-    with open(dest(), "r", encoding='utf-8', ) as f:
+    with open(dest, "r", encoding='utf-8', ) as f:
         for line in f.readlines():
             try:
                 title, content = line.strip().split(':')
@@ -147,6 +149,7 @@ def pretty_print_poem(poem1):  # 打印
             s = OpenCC('t2s').convert(s)
             print(s + '。')
         elif s==poem_sentences[0]:
+            s = OpenCC('t2s').convert(s)
             print(s)
 
     #print(len(poem1))
@@ -204,8 +207,11 @@ if __name__ == '__main__':
         print("start to generate poem")
         print("(仅输入为Enter退出)请给出一个字:",end='')
         while word1 := input():
-            # word1 = OpenCC('s2t').convert(word1)
-            pretty_print_poem(gen_poem(word1))
+            word1 = OpenCC('s2t').convert(word1)
+            try:
+                pretty_print_poem(gen_poem(word1))
+            except KeyError as e:
+                print("生成失败，换个字试试吧！") 
             print("(仅输入为Enter退出)请给出一个字:",end='')
     else:
         print("输入错误")
