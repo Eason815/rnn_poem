@@ -18,10 +18,15 @@
 ## 数据集
 
 主页
+
 https://github.com/chinese-poetry/chinese-poetry
 
 本项目使用部分
+
 https://github.com/chinese-poetry/chinese-poetry/tree/master/%E5%85%A8%E5%94%90%E8%AF%97
+
+
+
 
 ## 实现过程
 
@@ -29,19 +34,19 @@ https://github.com/chinese-poetry/chinese-poetry/tree/master/%E5%85%A8%E5%94%90%
 
 在dealdata.py文件中
 
-定义deal_data函数：将.json文件的诗歌数据录入到.txt文件中
+- 定义deal_data函数：将.json文件的诗歌数据录入到.txt文件中
 
-定义dest函数：后续在main中引入此函数继续训练
+- 定义dest函数：后续在main中引入此函数继续训练
 
 ### 定义rnn_lstm模型
 
 在rnn_lstm.py文件中
 
-定义weights_init函数：用于初始化神经网络中的权重
+- 定义weights_init函数：用于初始化神经网络中的权重
 
-定义word_embedding：一个词嵌入模型，它将词的索引转换为词嵌入向量。
+- 定义word_embedding：一个词嵌入模型，它将词的索引转换为词嵌入向量。
 
-定义RNN_model：一个基于 LSTM 的循环神经网络模型，它用于生成诗歌。
+- 定义RNN_model：一个基于 LSTM 的循环神经网络模型，它用于生成诗歌。
 
 RNN 的基本原理是利用神经网络的输出作为下一步的输入，形成一种“循环”的结构，这使得 RNN 能够处理序列数据。然而，传统的 RNN 存在梯度消失和梯度爆炸的问题，这使得它难以处理长序列数据。
 
@@ -51,15 +56,15 @@ LSTM 通过引入“门”结构和“记忆细胞”来解决这个问题。门
 
 在main.py文件中
 
-定义process_poems函数：处理数据，映射得到词汇表
+- 定义process_poems函数：处理数据，映射得到词汇表
 
-初始化词嵌入层和RNN模型
+- 初始化词嵌入层和RNN模型
 
-定义优化器      RMSprop
+- 定义优化器      RMSprop
 
-定义损失函数    NLLLoss(负对数似然损失)
+- 定义损失函数    NLLLoss(负对数似然损失)
 
-定义generate_batch函数：生成批次数据并处理，计算损失进行反向传播
+- 定义generate_batch函数：生成批次数据并处理，计算损失进行反向传播
 
 保存模型
 
@@ -69,7 +74,7 @@ LSTM 通过引入“门”结构和“记忆细胞”来解决这个问题。门
 
 ### 自训练模型1
 
-包含20000首唐诗
+包含20000余首唐诗
 
     (仅输入为Enter退出)请给出一个字:新
     新春光不可寻
@@ -91,27 +96,54 @@ LSTM 通过引入“门”结构和“记忆细胞”来解决这个问题。门
     风流落日照云色，风吹花枝落露香。
     谁家一朝有文子，不知君不可如头。
 
+### 自训练模型2
 
+第二次训练发现数据中，一些字出现概率过高，导致训练结果不理想
+
+尝试剔除含有占比过高字的诗歌 并只保留七言绝句（250000余首宋诗->97067首）
+
+包含90000余首宋诗
+
+    (仅输入为Enter退出)请给出一个字:寒
+    寒日夜声
+    不知何处无人语，不见山中一水落。
+    一声风雨不可寻，一日一声天地长。
+
+    (仅输入为Enter退出)请给出一个字:亭
+    亭下铄
+    山中有客无人语，诗在山中有几人。
+    老有一身无处有，一时人在白云间。
+
+    (仅输入为Enter退出)请给出一个字:清
+    清如玉
+    不知身在玉堂山，一日一声天地间。
+    人言万古不如在，不见一时无一言。
+
+    (仅输入为Enter退出)请给出一个字:洞 
+    洞天龙密云
+    老人不作一身语，老身一日无人看。
+    君不见天下一尺，一时白日无人愁。
+
+    (仅输入为Enter退出)请给出一个字:寻
+    寻老不如君
+    人言无人不如归，老身不作人间人。
+    君不见不见前日，不知何处不如何。
+
+> **导入使用模型时应注意：模型要与源文本一同对应导入**
 
 ## 实验环境
 
-### Windows
-
-10.0.22621
 
 ### Python 
 
-3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
+- 3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]
 
 ### Torch
 
-2.2.1+cu121
+- 2.2.1+cu121
 
-Device 0: NVIDIA GeForce RTX 4060 Laptop GPU
-
-Total memory: 8.0GB
-
-Compute capability: 8.9
+    * Device 0: NVIDIA GeForce RTX 4060 Laptop GPU &nbsp;&nbsp; 8.0GB
+    * Compute capability: 8.9
 
 
 ## 参考文献
@@ -119,11 +151,13 @@ Compute capability: 8.9
 
 基于项目 https://github.com/nndl/exercise/blob/master/chap6_RNN
 
-改进数据预处理部分
+- 改进数据预处理部分
 
-调整训练参数进行优化
+- 调整训练参数进行优化
 
-整理数据结果输出
+- 自行训练词汇表模型
+
+- 整理数据结果输出
 
 
 ### 署名

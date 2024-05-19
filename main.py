@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 import collections
 import torch
 from torch.autograd import Variable
@@ -13,10 +14,17 @@ batch_size = 64
 
 # 注意！模型要与源文本一同对应导入
 
-# 自训练模型1
-putmodel=savemodel='./model/rnn_model1'
-dest='./setdata/tang.txt'
+# 请选择模型：
 
+# 自训练模型1
+# putmodel=savemodel='./model/rnn_model1'
+# dest='./setdata/tang.txt'
+# epochs = 11
+
+# 自训练模型2
+putmodel=savemodel='./model/rnn_model2'
+dest='./setdata/song.txt'
+epochs = 41
 
 
 def process_poems():
@@ -91,7 +99,7 @@ def run_training():
     loss_fun = torch.nn.NLLLoss() # 损失函数
 
 
-    for epoch in range(11):
+    for epoch in range(epochs):
 
         batches_inputs, batches_outputs = generate_batch(BATCH_SIZE, poems_vector, word_to_int)
         n_chunk = len(batches_inputs)
@@ -134,7 +142,8 @@ def to_word(predict, vocabs):  # 预测的结果转化成汉字
         sample = len(vocabs) - 1
     return vocabs[sample]
 
-def pretty_print_poem(poem1):  # 打印
+# 格式任意诗句
+def pretty_print_poem1(poem1):  # 打印
 
     #print(poem)
 
@@ -145,7 +154,7 @@ def pretty_print_poem(poem1):  # 打印
 
     poem_sentences = poem1.split('。')
     for s in poem_sentences:
-        if s != '' and len(s) > 10 :
+        if s != '' and len(s) > 8 :
             s = OpenCC('t2s').convert(s)
             print(s + '。')
         elif s==poem_sentences[0]:
@@ -161,11 +170,51 @@ def pretty_print_poem(poem1):  # 打印
         #print(poem2)
         poem_sentences = poem2.split('。')
         for s in poem_sentences:
-            if s != '' and len(s) > 10 :
+            if s != '' and len(s) > 8 :
                 s = OpenCC('t2s').convert(s)
                 print(s + '。')
 
+        # # print(len(poem1) + len(poem2))
 
+        # if len(poem1) + len(poem2) < 24 and (len(poem2) >= 3 and poem2[-3] != ''):
+        #     poem3 = gen_poem(poem2[-3])
+        #     poem_sentences = poem3.split('。')
+        #     for s in poem_sentences:
+        #         if s != '' and len(s) > 8 :
+        #             s = OpenCC('t2s').convert(s)
+        #             print(s + '。')
+
+# 七言绝句
+def pretty_print_poem2(poem1):  # 打印
+
+    #print(poem)
+
+    # 无法生成
+    if len(poem1) <= 3:
+        print("生成失败，换个字试试吧！") 
+        return 
+
+    poem_sentences = poem1.split('。')
+    for s in poem_sentences:
+        if s != '' and len(s) == 15 :
+            s = OpenCC('t2s').convert(s)
+            print(s + '。')
+        elif s==poem_sentences[0]:
+            s = OpenCC('t2s').convert(s.split('，')[0])
+            print(s)
+
+    #print(len(poem1))
+
+    #续写
+    if len(poem1) < 24 and (len(poem1) >= 3 and poem1[-3] != ''):
+        #print(poem1[-3])
+        poem2 = gen_poem(poem1[-3])
+        #print(poem2)
+        poem_sentences = poem2.split('。')
+        for s in poem_sentences:
+            if s != '' and len(s) == 15 :
+                s = OpenCC('t2s').convert(s)
+                print(s + '。')
 
 
 # 作一段诗
@@ -195,7 +244,6 @@ def gen_poem(begin_word):
     return poem
     
 
-
 if __name__ == '__main__':
     #print("选择模式：1.训练模式 2.生成模式\n你的选择(输入1或2):")
     mode = 2
@@ -207,15 +255,17 @@ if __name__ == '__main__':
         print("start to generate poem")
         print("(仅输入为Enter退出)请给出一个字:",end='')
         while word1 := input():
+            if '&' in word1:
+                break
             word1 = OpenCC('s2t').convert(word1)
             try:
-                pretty_print_poem(gen_poem(word1))
+                if putmodel == './model/rnn_model1':
+                    pretty_print_poem1(gen_poem(word1))
+                elif putmodel == './model/rnn_model2':
+                    pretty_print_poem2(gen_poem(word1))
             except KeyError as e:
                 print("生成失败，换个字试试吧！") 
             print("(仅输入为Enter退出)请给出一个字:",end='')
     else:
         print("输入错误")
         exit(0)
-
-
-
