@@ -17,16 +17,17 @@
 
 ## 数据集
 
-主页
+### 诗歌数据
 
-https://github.com/chinese-poetry/chinese-poetry
+主页 https://github.com/chinese-poetry/chinese-poetry
 
-本项目使用部分
+- 下载 https://github.com/chinese-poetry/chinese-poetry/tree/master/%E5%85%A8%E5%94%90%E8%AF%97
 
-https://github.com/chinese-poetry/chinese-poetry/tree/master/%E5%85%A8%E5%94%90%E8%AF%97
+### 预训练的词嵌入
 
+主页 https://github.com/Embedding/Chinese-Word-Vectors
 
-
+- 下载 https://pan.baidu.com/s/1ciq8iXtcrHpu3ir_VhK0zg
 
 ## 实现过程
 
@@ -34,21 +35,26 @@ https://github.com/chinese-poetry/chinese-poetry/tree/master/%E5%85%A8%E5%94%90%
 
 在dealdata.py文件中
 
-- 定义deal_data函数：将.json文件的诗歌数据录入到.txt文件中
+- 定义`deal_data`函数：将.json文件的诗歌数据录入到.txt文件中
 
 
 ### 定义模型
 
-模型文件:
+模型:
     
     rnn.py          (基于RNN)
     cnn.py          (基于CNN)
     rnn_lstm.py     (基于LSTM)
+    lstm.py         (基于LSTM)
+
+词向量Word2vec:
+
+    sgns.literature.word    (文学作品)
 
 
-- 定义weights_init函数：用于初始化神经网络中的权重
+- 定义`weights_init`函数：用于初始化神经网络中的权重
 
-- 定义word_embedding：一个词嵌入模型，它将词的索引转换为词嵌入向量。
+- 定义`word_embedding`类：一个词嵌入模型，它将词的索引转换为词嵌入向量。
 
 
 
@@ -62,25 +68,25 @@ LSTM 通过引入“门”结构和“记忆细胞”来解决这个问题。门
 
 在main.py文件中
 
-- 定义getargs函数：输入文件等参数
+- 定义`getargs`函数：输入文件等参数
 
-- 定义process_poems函数：处理数据，映射得到词汇表
+- 定义`process_poems`函数：处理数据，映射得到词汇表
 
-- 定义generate_batch函数：生成批次数据并处理，计算损失进行反向传播
+- 定义`generate_batch`函数：生成批次数据并处理，计算损失进行反向传播
 
-- 定义run_training函数：
+- 定义`run_training`函数：
 
     - 初始化词嵌入层和模型
-    - 定义优化器     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RMSprop/Adam
-    - 定义损失函数   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       NLLLoss(负对数似然损失)
+    - 定义优化器     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `RMSprop`/`Adam`
+    - 定义损失函数   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       `NLLLoss`(负对数似然损失)
     - 进入训练循环
     - 所有epoch完成后，保存最终的模型状态。
 
-- 定义to_word函数：通过词汇表转换
+- 定义`to_word`函数：通过词汇表转换
 
-- 定义gen_poem函数：调用模型预测，生成诗句
+- 定义`gen_poem`函数：调用模型预测，生成诗句
 
-- 定义pretty_print_poem函数：优化格式，根据结尾续写等
+- 定义`pretty_print_poem`函数：优化格式，根据结尾续写等
 
 
 ## 关于优化
@@ -168,25 +174,109 @@ ReLU激活函数之后的Dropout层和全连接层之前的Dropout层都是为�
 
 Batch Normalization的主要思想是对每一层的输入进行归一化处理，使得结果的均值为0，方差为1。这样做的好处是可以防止梯度消失或梯度爆炸问题，使得网络可以使用更高的学习率，从而加速训练过程。
 
-Batch Normalization的操作通常在全连接层或卷积层之后、激活函数之前进行。具体操作如下：
+Batch Normalization的操作通常在全连接层或卷积层之后、激活函数之前进行。如下：
 
 1. 计算当前批次数据的均值和方差。
 2. 使用均值和方差对当前批次数据进行归一化处理。
 3. 对归一化的结果进行缩放和平移，这两个操作的参数是可以学习的。
 
+常用函数包括`torch.nn.BatchNorm1d`、`torch.nn.BatchNorm2d`和`F.normalize`
+
+1. `torch.nn.BatchNorm1d`和`torch.nn.BatchNorm2d`是Batch Normalization的实现，它们在每个mini-batch上计算输入的均值和方差，然后用这些值来对数据进行归一化，使得结果的均值为0，方差为1。这两个函数还包含两个可学习的参数（scale和shift），用于对归一化的结果进行缩放和平移。适合用于深度学习模型
+
+2. `F.normalize`是一个更简单的归一化函数，它直接对输入数据进行归一化，使得结果的L2范数（欧几里得长度）为1。`F.normalize`不计算输入的均值和方差，也不包含任何可学习的参数。这个函数通常用于对特征向量进行归一化，以确保它们在空间中的分布不受原始数据范围的影响。适合用于简单的特征向量归一化
 
 
 
 
 ## 效果展示
 
-
-
-
-
-
+尝试剔除含有占比过高字的诗歌 并只保留七言绝句（250000余首宋诗->97067首）
 
 ### 自训练模型1
+
+RNN模型网络如下 
+> rnn.py
+
+    """
+    输入数据 -> RNN -> 全连接层 -> Normalization -> ReLU -> Dropout -> Softmax -> 输出数据
+    """
+    batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
+    output, _ = self.rnn(batch_input, torch.zeros(2, 1, self.lstm_dim).to(device))
+    out = output.contiguous().view(-1,self.lstm_dim)
+    out =  F.normalize(out, p=2, dim=1)        # Normalization
+    out =  F.relu(self.fc(out))
+    out = nn.Dropout(0.5)(out)        `        # dropout层
+    out = self.softmax(out)
+
+
+
+包含90000余首七言宋诗
+
+    (仅输入为Enter退出)请给出一个字:林
+    林外雨，千尺黄花春已空。
+    老来不作一行客，不是高山无处行。
+    一年相语不可怜，一雨不是青山月。
+
+    (仅输入为Enter退出)请给出一个字:酒
+    酒长春风起一回
+    天上一时人不老，一声同上月明中外。
+    老来不作两人传，老病如今不能分寞。
+
+    (仅输入为Enter退出)请给出一个字:古
+    古今无人
+    不如梅子雪中春有，不知不是一年人。
+    一枝未觉无多子，一笑何人说一声轻。
+
+    (仅输入为Enter退出)请给出一个字:古
+    古今无人语
+    语声名无几日还，不知何处更何如明。
+    何时一雨不如雪，不是人间无几年微。
+
+
+### 自训练模型2
+
+CNN在此项目中还是不太合适
+
+使用了预训练的词向量
+
+CNN模型网络如下
+> cnn.py
+
+    """
+    输入数据 -> 两层卷积层CNN -> 注意力机制 -> 全连接层  -> ReLU/Leaky_Relu -> Dropout -> Softmax -> 输出数据
+    """
+    batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
+    output = self.conv1(batch_input.permute(0,2,1)).permute(0,2,1)
+    output = self.conv2(output.permute(0,2,1)).permute(0,2,1)
+    output = self.attention(output)        # 在CNN和全连接层之间添加注意力机制
+    out = output.contiguous().view(-1,self.lstm_dim)
+    out = F.leaky_relu(self.fc(out))
+    out = nn.Dropout(0.5)(out)        # dropout层
+    out = self.softmax(out)
+
+
+包含90000余首七言宋诗
+
+    (仅输入为Enter退出)请给出一个字:林
+    林明名禹禹，E
+    (仅输入为Enter退出)请给出一个字:百
+    百百不，E
+
+
+
+### 自训练模型3
+
+> rnn_lstm.py
+
+    """
+    输入数据 -> LSTM -> 全连接层 -> ReLU -> Softmax -> 输出数据
+    """
+    batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
+    output, _ = self.rnn_lstm(batch_input, (torch.zeros(2, 1, self.lstm_dim).to(device), torch.zeros(2, 1, self.lstm_dim).to(device)))
+    out = output.contiguous().view(-1,self.lstm_dim)
+    out =  nn.functional.relu(self.fc(out))
+    out = self.softmax(out)
 
 包含20000余首唐诗
 
@@ -210,13 +300,20 @@ Batch Normalization的操作通常在全连接层或卷积层之后、激活函�
     风流落日照云色，风吹花枝落露香。
     谁家一朝有文子，不知君不可如头。
 
-### 自训练模型2
+### 自训练模型4
 
-第二次训练发现数据中，一些字出现概率过高，导致训练结果不理想
+> rnn_lstm.py
 
-尝试剔除含有占比过高字的诗歌 并只保留七言绝句（250000余首宋诗->97067首）
+    """
+    输入数据 -> LSTM -> 全连接层 -> ReLU -> Softmax -> 输出数据
+    """
+    batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
+    output, _ = self.rnn_lstm(batch_input, (torch.zeros(2, 1, self.lstm_dim).to(device), torch.zeros(2, 1, self.lstm_dim).to(device)))
+    out = output.contiguous().view(-1,self.lstm_dim)
+    out =  nn.functional.relu(self.fc(out))
+    out = self.softmax(out)
 
-包含90000余首宋诗
+包含90000余首七言宋诗
 
     (仅输入为Enter退出)请给出一个字:寒
     寒日夜声
@@ -253,7 +350,109 @@ Batch Normalization的操作通常在全连接层或卷积层之后、激活函�
     人间万古无人语，一曲清风一水长。
     人言万古不如枯，人间有酒如何人。
 
+### 自训练模型5
+
+使用了预训练的词向量
+> lstm.py
+
+    """
+    输入数据 -> LSTM -> 全连接层 -> ReLU -> Dropout -> Softmax -> 输出数据
+    """
+    batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
+    output, _ = self.rnn_lstm(batch_input, (torch.zeros(2, 1, self.lstm_dim).to(device), torch.zeros(2, 1, self.lstm_dim).to(device)))
+    out = output.contiguous().view(-1,self.lstm_dim)
+    out =  F.relu(self.fc(out))
+    out = nn.Dropout(0.5)(out)
+    out = self.softmax(out)
+
+包含50000余首五言宋诗
+
+    (仅输入为Enter退出)请给出一个字:春
+    春月落飞飞，青山无古尘。
+    落日无余子，谁家日上真。
+    飞落青山下，春霜入晚回。
+
+    (仅输入为Enter退出)请给出一个字:林
+    山灵无远远，水上水中低。
+    古石犹无路，春霜日上青。
+    春日无时看，古石如飞影。
+
+    (仅输入为Enter退出)请给出一个字:晓
+    青春上上龙，孤城无远后。
+    春日日前春，古石犹无日。
+    春余水上尘，春霜如石路。
+    岁月入秋霜，谁家非下远。
+
+    (仅输入为Enter退出)请给出一个字:齐
+    齐家犹断落，春日上山门。
+    无时非古时，欲见古中春。
+    谁家无远春，大子日明月。
+
 > **导入使用模型时应注意：模型要与源文本一同对应导入**
+
+效果仅供参考
+
+模型3,4为固定输出 
+
+其余模型均为随机输出
+
+## 总结
+
+### 模型实现
+
+1. RNN模型（rnn.py）
+
+输入数据 -> RNN -> 全连接层 -> Normalization -> ReLU -> Dropout -> Softmax -> 输出数据
+
+使用90000余首七言宋诗进行训练
+
+效果：生成的诗句基本连贯，但有时语义上不够准确
+
+2. CNN模型（cnn.py）
+
+输入数据 -> 两层卷积层 -> 注意力机制 -> 全连接层 -> Normalization -> ReLU/Leaky_Relu -> Dropout -> Softmax -> 输出数据
+
+使用90000余首七言宋诗进行训练，预训练的词向量
+
+效果：生成的诗句不够连贯，存在乱码
+
+3. LSTM模型（rnn_lstm.py 和 lstm.py）
+
+输入数据 -> LSTM -> 全连接层 -> ReLU -> Dropout -> Softmax -> 输出数据
+
+使用20000余首唐诗和90000余首七言宋诗进行训练
+
+效果：生成的诗句较为连贯，语义也较准确
+
+#### 尝试
+
+4. GRU（Gated Recurrent Unit）
+
+简化结构：GRU 是 LSTM 的简化版本，只有两个门（更新门和重置门）。它保留了 LSTM 的一些优点，但结构更简单，计算效率更高。
+
+性能表现：GRU 的表现与 LSTM 相当，但由于其更简化的结构，计算速度更快，适用于一些对计算效率要求较高的应用场景。
+
+推荐使用RNN,GRU,LSTM系列模型。
+
+### 优化与改进
+1. Dropout：通过添加Dropout层来防止过拟合。
+1. 优化器：尝试了RMSprop和Adam等优化器以改善模型性能。
+1. 激活函数：尝试了ReLU和Leaky ReLU等激活函数。
+1. 网络结构：尝试引入双向RNN、堆叠RNN和注意力机制等更复杂的结构。
+1. 批量归一化：在全连接层之后添加Batch Normalization以改善模型的性能。
+
+
+### 实现效果
+通过对比不同模型的生成效果，可以得出以下结论：
+
+1. RNN模型：适合处理短文本生成任务，但在长文本生成方面可能会遇到梯度消失问题。
+2. CNN模型：在文本生成任务中表现不如RNN和LSTM，适合处理图像和短序列数据。
+3. LSTM模型：在处理长序列数据时表现优异，生成的诗句较为连贯，语义准确，是中文古诗词生成任务中的较优选择。
+
+
+### 结言
+
+本项目通过对比不同神经网络模型生成古诗词的效果，发现LSTM模型在语义连贯性和准确性上表现最佳。项目展示了深度学习在自然语言处理和文本生成领域的潜力，并为进一步的研究和应用提供了重要参考。
 
 ## 实验环境
 

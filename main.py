@@ -4,6 +4,9 @@ import torch
 from torch.autograd import Variable
 import torch.optim as optim
 from opencc import OpenCC
+import os
+import time
+import re
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 start_token = 'G'
@@ -11,39 +14,49 @@ end_token = 'E'
 batch_size = 64
 
 # 选择模式：1.训练模式 2.生成模式
-mode=2
+mode = 2
 
 # 注意！模型要与源文本一同对应导入
-# 请选择模型(1或2)：
-choices=1
+# 请选择模型(1-5)：
+choices = 4
 
 
 def getargs(choices):
+    project_path = os.path.dirname(os.path.abspath(__file__))
+    
     # 自训练模型1
     if choices == 1:
-        putmodel=savemodel='./model/rnn_model1'
-        dest='./setdata/tang.txt'
-        epochs = 11
+        putmodel=savemodel= project_path + '\\model\\rnn_model1'
+        dest= project_path + '\\setdata\\song7.txt'
+        epochs = 100
         return putmodel,savemodel,dest,epochs
     # 自训练模型2    
     elif choices == 2:
-        putmodel=savemodel='./model/rnn_model2'
-        dest='./setdata/song.txt'
-        epochs = 41
-        return putmodel,savemodel,dest,epochs
+        embeding_path = project_path + '\\define\\sgns.literature.word'
+        putmodel=savemodel= project_path + '\\model\\rnn_model2'
+        dest= project_path + '\\setdata\\song7.txt'
+        epochs = 10
+        return putmodel,savemodel,dest,epochs,embeding_path
     # 自训练模型3
     elif choices == 3:
-        putmodel=savemodel='./model/rnn_model3'
-        dest='./setdata/song.txt'
-        epochs = 100
+        putmodel=savemodel= project_path + '\\model\\rnn_model3'
+        dest= project_path + '\\setdata\\tang.txt'
+        epochs = 11
         return putmodel,savemodel,dest,epochs
     # 自训练模型4
     elif choices == 4:
-        putmodel=savemodel='./model/rnn_model4'
-        dest='./setdata/song.txt'
-        epochs = 100
+        putmodel=savemodel= project_path + '\\model\\rnn_model4'
+        dest= project_path + '\\setdata\\song7.txt'
+        epochs = 41
         return putmodel,savemodel,dest,epochs
-    # 自训练模型...  
+    # 自训练模型5
+    elif choices == 5:
+        embeding_path = project_path + '\\define\\sgns.literature.word'
+        putmodel=savemodel= project_path + '\\model\\rnn_model5'
+        dest= project_path + '\\setdata\\song5.txt'
+        epochs = 20
+        return putmodel,savemodel,dest,epochs,embeding_path
+    # 自训练模型...
 
     else:
         print("输入错误")
@@ -77,7 +90,7 @@ def process_poems():
     count_pairs = sorted(counter.items(), key=lambda x: -x[1])  # 词频排列
     words, _ = zip(*count_pairs)
 
-    words = words[:len(words)] + (' ',)
+    words = words[:len(words)] + (' ',)         # 诗中所有出现的字，按照它们出现的频率排序
     word_int_map = dict(zip(words, range(len(words))))  # 映射字典
     poems_vector = [list(map(word_int_map.get, poem)) for poem in poems]# 生成vector 数字id表示
     return poems_vector, word_int_map, words
@@ -110,32 +123,41 @@ def run_training():
 
     torch.manual_seed(5)
 
-    if choices == 1 or choices == 2:
+    if choices == 3 or choices == 4:
         word_embedding = rnn_lstm.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 100)
         rnn_model = rnn_lstm.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 100, lstm_hidden_dim=128)
-    elif choices == 3:
+    elif choices == 1:
         word_embedding = rnn.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 100)
         rnn_model = rnn.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 100, lstm_hidden_dim=128)
-    elif choices == 4:
-        word_embedding = cnn.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 100)
-        rnn_model = cnn.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 100, lstm_hidden_dim=128)
+    elif choices == 2:
+        word_embedding = cnn.word_embedding( vocab_length= len(word_to_int) + 1 , embedding_dim= 300,pretrained_embeddings_path=embeding_path, vocab=word_to_int)
+        rnn_model = cnn.RNN_model(batch_sz = BATCH_SIZE,vocab_len = len(word_to_int) + 1 ,word_embedding = word_embedding ,embedding_dim= 300, lstm_hidden_dim=128)
+    elif choices == 5:
+        word_embedding = lstm.word_embedding(vocab_length=len(word_to_int) + 1, embedding_dim=300, pretrained_embeddings_path=embeding_path, vocab=word_to_int)
+        rnn_model = lstm.RNN_model(batch_sz=BATCH_SIZE, vocab_len=len(word_to_int) + 1, word_embedding=word_embedding, embedding_dim=300, lstm_hidden_dim=128)
 
     rnn_model.to(device)
     if choices == 1 or choices == 2:
-        optimizer = optim.RMSprop(rnn_model.parameters(), lr=0.01)# 优化器
-    elif choices == 3 or choices == 4:
         optimizer = optim.Adam(rnn_model.parameters(), lr=0.001)# 优化器
+    elif choices == 3 or choices == 4 or choices == 5:
+        optimizer = optim.RMSprop(rnn_model.parameters(), lr=0.01)# 优化器
     # optimizer = optim.SGD(rnn_model.parameters(), lr=0.001, momentum=0.9)# 优化器
     # optimizer = optim.Adagrad(rnn_model.parameters(), lr=0.01)# 优化器
 
     loss_fun = torch.nn.NLLLoss() # 损失函数
 
-
+    # 在每个epoch开始时记录开始时间
+    start_time = time.time()
     for epoch in range(epochs):
+        # 在每个epoch开始时重置batch计数器和总时间
+        total_batch_time = 0
+        batch_count = 0
 
         batches_inputs, batches_outputs = generate_batch(BATCH_SIZE, poems_vector, word_to_int)
         n_chunk = len(batches_inputs)
         for batch in range(n_chunk):
+            batch_start_time = time.time()
+
             batch_x = batches_inputs[batch]
             batch_y = batches_outputs[batch]
             loss = 0
@@ -152,8 +174,23 @@ def run_training():
                     print('prediction', pre.data.tolist()) # 输出预测结果（现在都是数字id形式的）
                     print('b_y       ', y.data.tolist())   # 输出label，真正的古诗，也是数字id形式
                     print('*' * 30)
-            loss  = loss  / BATCH_SIZE #计算平均损失吧
-            print("epoch  ",epoch,'batch number',batch,"loss is: ", loss.data.tolist())
+
+            loss  = loss  / BATCH_SIZE #计算平均损失
+            
+            total_batch_time += time.time() - batch_start_time  # 在每个batch结束时更新总时间和batch计数器
+            batch_count += 1
+            avg_batch_time = total_batch_time / batch_count     # 计算平均每个batch所需的时间
+            remaining_time = avg_batch_time * (n_chunk - batch) # 用平均时间乘以剩余的batch数量来估计剩余时间
+            m, s = divmod(remaining_time, 60)
+
+            total_epoch_time = time.time() - start_time  # 在每个epoch结束时更新总时间
+            progress1=(batch+1)/n_chunk
+            avg_epoch_time = total_epoch_time / (epoch + progress1)  # 计算平均每个epoch所需的时间
+            remaining_time1 = avg_epoch_time * (epochs - epoch - progress1)  # 用平均时间乘以剩余的epoch数量来估计剩余时间
+            m1, s1 = divmod(remaining_time1, 60)
+            h1, m1 = divmod(m1, 60)
+
+            print("epoch  ",epoch,'batch number',batch,"loss is: ", loss.data.tolist(), "\033[32m" + "epoch ETA: " + "%02d:%02d" % (m, s) + "\033[0m", "\033[36m" + "ETA: " + "%02d:%02d:%02d" % (h1, m1, s1) + "\033[0m")
             optimizer.zero_grad()#梯度归零
             loss.backward()#反向传播
             torch.nn.utils.clip_grad_norm(rnn_model.parameters(), 1)#对所有的梯度乘以一个clip_coef，缓解梯度爆炸问题（小于1）
@@ -181,15 +218,18 @@ def gen_poem(begin_word):
     
     poems_vector, word_int_map, vocabularies = process_poems()
 
-    if choices == 1 or choices == 2:
+    if choices == 3 or choices == 4:
         word_embedding = rnn_lstm.word_embedding(vocab_length=len(word_int_map) + 1, embedding_dim=100)
         rnn_model = rnn_lstm.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,embedding_dim=100, lstm_hidden_dim=128)
-    elif choices == 3: 
+    elif choices == 1: 
         word_embedding = rnn.word_embedding(vocab_length=len(word_int_map) + 1, embedding_dim=100)
         rnn_model = rnn.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,embedding_dim=100, lstm_hidden_dim=128)
-    elif choices == 4:
-        word_embedding = cnn.word_embedding(vocab_length=len(word_int_map) + 1, embedding_dim=100)
-        rnn_model = cnn.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,embedding_dim=100, lstm_hidden_dim=128)
+    elif choices == 2:
+        word_embedding = cnn.word_embedding(vocab_length=len(word_int_map) + 1, embedding_dim=300, pretrained_embeddings_path=embeding_path, vocab=word_int_map)
+        rnn_model = cnn.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,embedding_dim=300, lstm_hidden_dim=128)
+    elif choices == 5:
+        word_embedding = lstm.word_embedding(vocab_length=len(word_int_map) + 1, embedding_dim=300, pretrained_embeddings_path=embeding_path, vocab=word_int_map)
+        rnn_model = lstm.RNN_model(batch_sz=64, vocab_len=len(word_int_map) + 1, word_embedding=word_embedding,embedding_dim=300, lstm_hidden_dim=128)
 
     rnn_model.load_state_dict(torch.load(putmodel))#加载模型
 
@@ -210,10 +250,10 @@ def gen_poem(begin_word):
         
     return poem
     
-# 格式任意诗句
+# 格式任意诗句(含续写)
 def pretty_print_poem1(poem1):  # 打印
 
-    #print(poem)
+    # print(poem1)
 
     # 无法生成
     if len(poem1) <= 3:
@@ -222,6 +262,10 @@ def pretty_print_poem1(poem1):  # 打印
 
     poem_sentences = poem1.split('。')
     for s in poem_sentences:
+        # 删除}字符
+        if '}' in s:
+            s = s.replace('}', '')
+
         if s != '' and len(s) > 8 :
             s = OpenCC('t2s').convert(s)
             print(s + '。')
@@ -238,6 +282,8 @@ def pretty_print_poem1(poem1):  # 打印
         #print(poem2)
         poem_sentences = poem2.split('。')
         for s in poem_sentences:
+            if '}' in s:
+                s = s.replace('}', '')
             if s != '' and len(s) > 8 :
                 s = OpenCC('t2s').convert(s)
                 print(s + '。')
@@ -287,49 +333,76 @@ def pretty_print_poem2(poem1):  # 打印
 # 五言绝句
 def pretty_print_poem3(poem1):  # 打印
 
-    print(poem1)
+    # print(poem1)
 
     # 无法生成
     if len(poem1) <= 3:
         print("生成失败，换个字试试吧！") 
         return 
 
-    poem_sentences = poem1.split('。')
+    poem_sentences = re.split('。|，', poem1)
+
+    count = 0
     for s in poem_sentences:
-        if s != '' and len(s) == 11 :
+        if s != '' and len(s) == 5:
             s = OpenCC('t2s').convert(s)
-            print(s + '。')
-        elif s==poem_sentences[0]:
-            s = OpenCC('t2s').convert(s.split('，')[0])
-            print(s)
+            if count % 2 == 0:    
+                print(s + '，', end='')
+            else:
+                print(s + '。')
+            count += 1
 
     #print(len(poem1))
 
-    #续写
-    if len(poem1) < 24 and (len(poem1) >= 3 and poem1[-3] != ''):
-        #print(poem1[-3])
-        poem2 = gen_poem(poem1[-3])
-        #print(poem2)
-        poem_sentences = poem2.split('。')
-        for s in poem_sentences:
-            if s != '' and len(s) == 11 :
-                s = OpenCC('t2s').convert(s)
-                print(s + '。')
+# 格式任意诗句(不含续写)
+def pretty_print_poem4(poem1):  # 打印
+
+    # print(poem1)
+
+    # 无法生成
+    if len(poem1) <= 3:
+        print("生成失败，换个字试试吧！") 
+        return 
+
+    poem_sentences = re.split('。|，', poem1)
+    for s in poem_sentences:
+        # 删除}字符
+        if '}' in s:
+            s = s.replace('}', '')
+
+        if s != '' and len(s) > 8 :
+            s = OpenCC('t2s').convert(s)
+            print(s + '。')
+        elif s==poem_sentences[0]:
+            s = OpenCC('t2s').convert(s)
+            print(s)
 
 
 if __name__ == '__main__':
 
-    if choices == 1 or choices == 2:
+    if choices == 3 or choices == 4:
         import define.rnn_lstm as rnn_lstm
-    elif choices == 3:
+        putmodel,savemodel,dest,epochs=getargs(choices)
+    elif choices == 1:
         import define.rnn as rnn
-    elif choices == 4:
+        putmodel,savemodel,dest,epochs=getargs(choices)
+    elif choices == 2:
         import define.cnn as cnn
+        putmodel,savemodel,dest,epochs,embeding_path=getargs(choices)
+        # 测试embeding_path是否存在
+        if not os.path.exists(embeding_path):
+            print("预训练词向量不存在，请自行下载sgns.literature.word文件后放入define文件夹")
+            exit(0)
+    elif choices == 5:
+        import define.lstm as lstm
+        putmodel,savemodel,dest,epochs,embeding_path=getargs(choices)
+        if not os.path.exists(embeding_path):
+            print("预训练词向量不存在，请自行下载sgns.literature.word文件后放入define文件夹")
+            exit(0)
     else:
         print("choices输入错误")
         exit(0)
 
-    putmodel,savemodel,dest,epochs=getargs(choices)
 
 
     if mode == 1:
@@ -338,7 +411,7 @@ if __name__ == '__main__':
         print("finish training")
     elif mode == 2:
         print("start to generate poem")
-        print("(仅输入为Enter退出)请给出一个字:",end='')
+        print("(仅输入为" + "\033[36m" + "Enter" + "\033[0m" +"退出)请给出一个字:",end='')
         while word1 := input():
             if '&' in word1:
                 break
@@ -347,14 +420,16 @@ if __name__ == '__main__':
                 if choices == 1:
                     pretty_print_poem1(gen_poem(word1))
                 elif choices == 2:
-                    pretty_print_poem2(gen_poem(word1))
+                    pretty_print_poem4(gen_poem(word1))
                 elif choices == 3:
                     pretty_print_poem1(gen_poem(word1))
                 elif choices == 4:
-                    pretty_print_poem1(gen_poem(word1))
+                    pretty_print_poem2(gen_poem(word1))
+                elif choices == 5:
+                    pretty_print_poem3(gen_poem(word1))
             except KeyError as e:
                 print("生成失败，换个字试试吧！") 
-            print("(仅输入为Enter退出)请给出一个字:",end='')
+            print("(仅输入为" + "\033[36m" + "Enter" + "\033[0m" +"退出)请给出一个字:",end='')
     else:
         print("输入错误")
         exit(0)

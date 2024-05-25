@@ -31,6 +31,8 @@ class word_embedding(nn.Module):
         return sen_embed
 
 
+
+
 class RNN_model(nn.Module):
     def __init__(self, batch_sz ,vocab_len ,word_embedding,embedding_dim, lstm_hidden_dim):
         super(RNN_model,self).__init__()
@@ -50,43 +52,26 @@ class RNN_model(nn.Module):
         self.conv1 = nn.Conv1d(self.word_embedding_dim, self.lstm_dim, kernel_size=3, padding=1)
         self.conv2 = nn.Conv1d(self.lstm_dim, self.lstm_dim, kernel_size=3, padding=1)
 
-        self.transformer = nn.Transformer(d_model=self.word_embedding_dim, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=512, dropout=0.1, activation='relu')
+        self.transformer = nn.Transformer(d_model=self.word_embedding_dim, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=512, dropout=0.1, activation='relu',batch_first=True)
 
         self.attention = Attention(self.lstm_dim)
         # self.normalization = nn.BatchNorm1d(self.lstm_dim)
         self.fc = nn.Linear(lstm_hidden_dim, vocab_len,self.word_embedding_dim)
         self.apply(weights_init)
 
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.LogSoftmax(dim=1)
         self.tanh = nn.Tanh()
 
     def forward(self,sentence,is_test = False):
         """
-        输入数据 -> RNN -> 全连接层 -> Normalization -> ReLU -> Softmax -> 输出数据
+        输入数据 -> RNN -> 全连接层 -> Normalization -> ReLU -> Dropout -> Softmax -> 输出数据
         """
         batch_input = self.word_embedding_lookup(sentence).view(1,-1,self.word_embedding_dim)
         output, _ = self.rnn(batch_input, torch.zeros(2, 1, self.lstm_dim).to(device))
-
-
-        # 注意力机制
-        # 在RNN和全连接层之间添加注意力机制
-        # output, hidden = self.rnn(batch_input, torch.zeros(2, 1, self.lstm_dim).to(device))
-        # hidden = hidden.expand(-1, -1, output.size(2))
-        # attn_weights = self.attention(hidden, output)
-        # context = attn_weights.bmm(output.transpose(0, 1))  # (B,1,N)
-        # context = context.transpose(0, 1)  # (1,B,N)
-        # output = context.squeeze(0)  # (B,N)
-
-
         out = output.contiguous().view(-1,self.lstm_dim)
-        
-        # Normalization
-        out =  F.normalize(out, p=2, dim=1)
-
+        out =  F.normalize(out, p=2, dim=1)        # Normalization
         out =  F.relu(self.fc(out))
-        
-        # dropout层
-        out = nn.Dropout(0.5)(out)
+        out = nn.Dropout(0.5)(out)        # dropout层
         out = self.softmax(out)
 
 

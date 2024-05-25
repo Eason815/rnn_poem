@@ -6,7 +6,7 @@ from opencc import OpenCC
 
 # 通过dealdata.py处理后数据集(setdata) 
 
-# 自训练模型1
+# 20000余首唐诗
 def data_deal1():
 
     dest1 = './setdata/tang.txt'
@@ -38,10 +38,10 @@ def data_deal1():
         f.close()
         print('第'+str(i)+'次写入完成')
 
-# 自训练模型2
+# 90000余首七言宋诗
 def data_deal2():
 
-    dest2 = './setdata/song.txt'
+    dest2 = './setdata/song7.txt'
 
     # 清空文件
     with open(dest2 , 'w') as f:
@@ -93,18 +93,18 @@ def data_deal2():
         f.close()
         print('第'+str(i)+'次写入完成')
 
-# 自训练模型3
+# 50000余首五言宋诗
 def data_deal3():
 
-    dest2 = './setdata/tang3.txt'
+    dest2 = './setdata/song5.txt'
 
     # 清空文件
     with open(dest2 , 'w') as f:
         f.write('')
 
-    for i in range(58):
+    for i in range(250):
 
-        path='./origindata/poet.tang.'+str(i*1000)+'.json'
+        path='./origindata/poet.song.'+str(i*1000)+'.json'
         # path = './origindata/唐诗三百首.json'
 
         # 打开并读取json文件
@@ -136,10 +136,10 @@ def data_deal3():
                     if random.random() < 0.2:
                         continue
                 
-                # # 只保留五言绝句
-                # test = paragraphs.split('，')
-                # if len(test[0]) != 5:
-                #     continue
+                # 只保留五言绝句
+                test = paragraphs.split('，')
+                if len(test[0]) != 5:
+                    continue
 
                 # 将"title"和"paragraphs"的值写入到test.txt文件中
                 f.write(title + ':' + paragraphs + '\n')
