@@ -64,6 +64,7 @@ def getargs(choices):
 
 def process_poems():
     # 数据预处理
+    # 1 文本清洗
     poems = []
     with open(dest, "r", encoding='utf-8', ) as f:
         for line in f.readlines():
@@ -82,14 +83,14 @@ def process_poems():
                 pass
 
     poems = sorted(poems, key=lambda line: len(line))
-
+    # 2 词频统计
     all_words = []
     for poem in poems:
         all_words += [word for word in poem]
     counter = collections.Counter(all_words)  
     count_pairs = sorted(counter.items(), key=lambda x: -x[1])  # 词频排列
-    words, _ = zip(*count_pairs)
-
+    words, _ = zip(*count_pairs) # 
+    # 3 词索引映射      "字"--->id(一个整数)
     words = words[:len(words)] + (' ',)         # 诗中所有出现的字，按照它们出现的频率排序
     word_int_map = dict(zip(words, range(len(words))))  # 映射字典
     poems_vector = [list(map(word_int_map.get, poem)) for poem in poems]# 生成vector 数字id表示
@@ -202,6 +203,14 @@ def run_training():
 
     torch.save(rnn_model.state_dict(), savemodel)#保存最终model
     print(len(word_to_int))
+"""
+假设我们有一个样本，其输入是诗歌的前n个词，输出是第n+1个词。
+我们首先将输入诗歌的前n个词通过词嵌入层转换为向量，然后将这些向量输入到模型中，得到第n+1个词的预测结果。
+然后，我们将这个预测结果和真实的第n+1个词在NLLLoss损失函数下的差异作为损失。
+
+反向传播和参数更新：计算完一个batch的平均损失后，我们将梯度归零，然后进行反向传播，计算每个参数的梯度。然后，我们使用优化器更新这些参数。
+"""
+
 
 
 def to_word(predict, vocabs):  # 预测的结果转化成汉字
