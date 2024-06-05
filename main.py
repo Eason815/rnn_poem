@@ -168,7 +168,7 @@ def run_training():
                 x = Variable(torch.from_numpy(np.expand_dims(x,axis=1)))#变量化
                 y = Variable(torch.from_numpy(y ))
                 x, y = x.to(device), y.to(device)
-                pre = rnn_model(x)#这里就进入model，得到预测结果
+                pre = rnn_model(x)#进入model，得到预测结果
                 loss += loss_fun(pre , y)#与真实label对比得loss
                 if index == 0:
                     _, pre = torch.max(pre, dim=1)#输出预测概率最大的那一个word

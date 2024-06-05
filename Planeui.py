@@ -33,7 +33,8 @@ def getargs(choices):
         putmodel=savemodel= project_path + '\\model\\rnn_model1'
         dest= project_path + '\\setdata\\song7.txt'
         epochs = 100
-        return putmodel,savemodel,dest,epochs
+        embeding_path = project_path + '\\define\\sgns.literature.word'
+        return putmodel,savemodel,dest,epochs,embeding_path
     # 自训练模型2    
     elif choices == 2:
         embeding_path = project_path + '\\define\\sgns.literature.word'
@@ -46,13 +47,15 @@ def getargs(choices):
         putmodel=savemodel= project_path + '\\model\\rnn_model3'
         dest= project_path + '\\setdata\\tang.txt'
         epochs = 11
-        return putmodel,savemodel,dest,epochs
+        embeding_path = project_path + '\\define\\sgns.literature.word'
+        return putmodel,savemodel,dest,epochs,embeding_path
     # 自训练模型4
     elif choices == 4:
         putmodel=savemodel= project_path + '\\model\\rnn_model4'
         dest= project_path + '\\setdata\\song7.txt'
         epochs = 41
-        return putmodel,savemodel,dest,epochs
+        embeding_path = project_path + '\\define\\sgns.literature.word'
+        return putmodel,savemodel,dest,epochs,embeding_path
     # 自训练模型5
     elif choices == 5:
         embeding_path = project_path + '\\define\\sgns.literature.word'
@@ -79,28 +82,28 @@ def model_import(choices):
     # 检查choices的值是否在字典中
     if choices in choices_map:
         # 获取参数
-        putmodel, savemodel, dest, epochs, *embeding_path = getargs(choices)
+        putmodel, savemodel, dest, epochs, embeding_path = getargs(choices)
 
         # 如果choices的值是2或5，检查embeding_path是否存在
-        if choices in [2, 5] and not os.path.exists(embeding_path):
+        if choices in [2, 5] and  not os.path.exists(embeding_path):
             print("预训练词向量不存在，请自行下载sgns.literature.word文件后放入define文件夹")
             exit(0)
     else:
         print("choices输入错误")
         exit(0)
 
-    return putmodel, savemodel, dest, epochs, *embeding_path
+    return putmodel, savemodel, dest, epochs, embeding_path
 
 def use_model(choices,is_train):
     if is_train == 1:
-        putmodel, savemodel, dest, epochs, *embeding_path = model_import(choices)
+        putmodel, savemodel, dest, epochs, embeding_path = model_import(choices)
         poems_vector, word_to_int, vocabularies = process_poems()
         BATCH_SIZE = 100
         torch.manual_seed(5)
         word_int_map = word_to_int
 
     elif is_train == 2:
-        putmodel, savemodel, dest, epochs, *embeding_path = model_import(choices)
+        putmodel, savemodel, dest, epochs, embeding_path = model_import(choices)
         poems_vector, word_int_map, vocabularies = process_poems()
 
     else:
@@ -136,7 +139,7 @@ def use_model(choices,is_train):
     return rnn_model
 
 def process_poems():
-    putmodel, savemodel, dest, epochs, *embeding_path = model_import(getchoices())
+    putmodel, savemodel, dest, epochs, embeding_path = model_import(getchoices())
     # 数据预处理
     poems = []
     with open(dest, "r", encoding='utf-8', ) as f:
@@ -203,7 +206,7 @@ def to_word(predict, vocabs):  # 预测的结果转化成汉字
 # 作一段诗
 def gen_poem(begin_word):
     choices = getchoices()
-    putmodel, savemodel, dest, epochs, *embeding_path = model_import(choices)
+    putmodel, savemodel, dest, epochs, embeding_path = model_import(choices)
     poems_vector, word_int_map, vocabularies = process_poems()
     
     rnn_model = use_model(choices,2)
@@ -324,6 +327,7 @@ def pretty_print_poem3(poem1):  # 打印
             count += 1
 
     #print(len(poem1))
+    return result
 
 # 格式任意诗句(不含续写)
 def pretty_print_poem4(poem1):  # 打印
